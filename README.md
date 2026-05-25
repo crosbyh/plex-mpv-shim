@@ -420,6 +420,70 @@ sudo ./install
 sudo ldconfig
 ```
 
+## Installing this Fork with pipx (Fedora 44)
+
+`pipx` installs the shim into its own isolated venv and puts the
+`plex-mpv-shim` entry point on your PATH, so you don't have to manage a
+virtualenv yourself or fight Fedora's PEP 668 externally-managed Python.
+
+```bash
+# 1) System dependencies
+sudo dnf install -y python3 python3-pip pipx python3-tkinter git mpv mpv-libs
+# Optional: GNOME Wayland users need this extension for the systray icon
+sudo dnf install -y gnome-shell-extension-appindicator
+
+# 2) Make sure ~/.local/bin is on PATH
+pipx ensurepath
+
+# 3) Open firewall ports (one-time)
+sudo firewall-cmd --permanent --add-port=3000/tcp
+sudo firewall-cmd --permanent --add-port=32410/udp
+sudo firewall-cmd --permanent --add-port=32412-32414/udp
+sudo firewall-cmd --reload
+
+# 4) Install this fork directly from GitHub
+pipx install --system-site-packages \
+    'git+https://github.com/crosbyh/plex-mpv-shim.git'
+
+# 5) Add the GUI/systray extras into the pipx venv
+pipx inject plex-mpv-shim pystray pillow
+
+# 6) Launch
+plex-mpv-shim
+```
+
+`--system-site-packages` lets the pipx venv reuse the distro's `python3-tkinter`
+so the GUI menu works without rebuilding Tk inside the venv.
+
+To upgrade later, pull the latest commit from this fork:
+
+```bash
+pipx upgrade plex-mpv-shim
+# or, if pipx caches the old ref:
+pipx reinstall plex-mpv-shim
+```
+
+On first launch the config is written to `~/.config/plex-mpv-shim/conf.json`. If
+the log reports "Could not find libmpv1", the bundled `python-mpv` is too old
+for your `libmpv.so.2`; inject a newer one with
+`pipx inject plex-mpv-shim 'python-mpv>=1.0.4'`, or set `"mpv_ext": true` in the
+config to drive the external `mpv` binary instead.
+
+To enable the systray icon under GNOME Wayland, activate the AppIndicator
+extension and log out/in:
+
+```bash
+gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+```
+
+### Notes on this fork
+
+This fork prunes stale Plex timeline subscribers in `plex_mpv_shim/timeline.py` so
+that mobile/web apps which background or switch networks without cleanly calling
+`/player/timeline/unsubscribe` no longer accumulate and saturate the sender pool.
+Upstream only removes subscribers on an explicit unsubscribe, which is why the
+shim could appear to "lose connection" to Plex after a stop.
+
 ## OSX Installation
 Currently on OSX only the external MPV backend seems to be working. I cannot test on OSX, so please report any issues you find.
 
