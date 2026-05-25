@@ -70,6 +70,15 @@ class TimelineManager(threading.Thread):
     def SendTimelineToSubscribers(self):
         timeline = self.GetCurrentTimeline()
 
+        # Prune subscribers that haven't refreshed within SUBSCRIBER_REMOVE_INTERVAL.
+        # Without this, Plex apps that don't cleanly /unsubscribe (mobile backgrounding,
+        # network switch, app crash) accumulate and saturate the sender pool with
+        # 5s timeouts, which manifests as the shim "losing connection" after a stop.
+        for stale_uuid in [
+            s.uuid for s in list(remoteSubscriberManager.subscribers.values()) if s.shouldRemove()
+        ]:
+            remoteSubscriberManager.subscribers.pop(stale_uuid, None)
+
         # The sender_pool prevents the timeline from freezing
         # if a client times out or takes a while to respond.
 
