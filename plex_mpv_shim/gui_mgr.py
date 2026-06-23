@@ -13,6 +13,7 @@ import os.path
 
 APP_NAME = "plex-mpv-shim"
 from .conffile import confdir
+from .conf import settings
 
 if (sys.platform.startswith("win32") or sys.platform.startswith("cygwin")) and getattr(sys, 'frozen', False):
     # Detect if bundled via pyinstaller.
@@ -169,7 +170,8 @@ class UserInterface:
     def run(self):
         self.queue = Queue()
         self.r_queue = Queue()
-        self.process = STrayProcess(self.queue, self.r_queue)
+        self.process = STrayProcess(self.queue, self.r_queue,
+                                    icon_name=settings.tray_icon_name)
         self.process.start()
 
         while True:
@@ -215,9 +217,10 @@ class UserInterface:
             log.error("Config opening is not available.")
 
 class STrayProcess(Process):
-    def __init__(self, queue, r_queue):
+    def __init__(self, queue, r_queue, icon_name=None):
         self.queue = queue
         self.r_queue = r_queue
+        self.icon_name = icon_name
         Process.__init__(self)
 
     def run(self):
@@ -242,6 +245,23 @@ class STrayProcess(Process):
 
         def setup(icon: Icon):
             icon.visible = True
+            # On Linux the AppIndicator/StatusNotifier backend can render a
+            # named theme icon instead of the bundled raster PNG. This lets
+            # the tray icon match the desktop theme (e.g. KDE Breeze), where
+            # symbolic icons are crisp, correctly sized, and recolored to the
+            # panel. Falls back silently to the PNG if the name isn't themed.
+            if self.icon_name and sys.platform.startswith("linux"):
+                appindicator = getattr(icon, "_appindicator", None)
+                if appindicator is not None:
+                    try:
+                        # set_icon must run on the GTK main loop, not this
+                        # setup worker thread. idle_add schedules it there and
+                        # runs once (set_icon returns None -> falsy -> removed).
+                        from gi.repository import GLib
+                        GLib.idle_add(appindicator.set_icon, self.icon_name)
+                    except Exception:
+                        log.warning("Could not set themed tray icon '%s'."
+                                    % self.icon_name)
 
         icon.run(setup=setup)
         self.r_queue.put(("die", None))

@@ -232,6 +232,10 @@ Currently on Windows the built-in MPV does not work with SVP. You must download 
  - `sanitize_output` - Prevent Plex tokens from being printed to the console. Default: `true`
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
  - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
+ - `tray_icon_name` - Name of a desktop-theme icon to use for the system tray (Linux only). Default: `mpv-symbolic`
+    - This renders a crisp, theme-matched icon (e.g. KDE Breeze symbolic icons) instead of the bundled raster image.
+    - Set to any icon name in your theme (e.g. `multimedia-player-symbolic`, `applications-multimedia-symbolic`), or `null`/empty to keep the bundled icon.
+    - If the named icon isn't found in the theme, it silently falls back to the bundled icon.
  - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
  - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
     - It may be useful to disable this if you are using an external player that already provides a user interface.

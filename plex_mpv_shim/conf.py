@@ -82,6 +82,7 @@ class Settings(object):
         "svp_socket":           None,
         "shader_pack_subtype":  "lq",
         "menu_mouse":           True,
+        "tray_icon_name":       "mpv-symbolic",
     }
 
     def __getattr__(self, name):
